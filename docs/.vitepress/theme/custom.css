@@ -1,0 +1,48 @@
+:root {
+  /* 主色：小红书红 */
+  --vp-c-brand-1: #FF2442;
+  --vp-c-brand-2: #E6002E;
+  --vp-c-brand-3: #FF6B81;
+  --vp-c-brand-soft: rgba(255, 36, 66, 0.1);
+
+  /* 按钮 */
+  --vp-button-brand-bg: #FF2442;
+  --vp-button-brand-hover-bg: #E6002E;
+  --vp-button-brand-active-bg: #CC0028;
+  --vp-button-brand-border: transparent;
+  --vp-button-brand-hover-border: transparent;
+  --vp-button-brand-text: #ffffff;
+  --vp-button-brand-hover-text: #ffffff;
+
+  /* 导航栏 */
+  --vp-nav-bg-color: #ffffff;
+
+  /* 首页 hero 区域 */
+  --vp-home-hero-name-color: #FF2442;
+
+  /* 链接颜色 */
+  --vp-c-default-1: #FF2442;
+}
+
+/* 导航栏底部加红线 */
+.VPNav {
+  border-bottom: 2px solid #FF2442 !important;
+}
+
+/* hero 标题渐变色 */
+.VPHero .name {
+  background: linear-gradient(135deg, #FF2442, #FF6B81);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 侧边栏激活项颜色 */
+.VPSidebarItem.is-active > .item > .VPLink {
+  color: #FF2442 !important;
+}
+
+/* 标签/提示框颜色 */
+.vp-doc .tip {
+  border-color: #FF2442;
+}
