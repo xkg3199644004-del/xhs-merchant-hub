@@ -46,3 +46,8 @@
 .vp-doc .tip {
   border-color: #FF2442;
 }
+
+/* 隐藏上下页导航 */
+.VPDocFooter {
+  display: none !important;
+}
