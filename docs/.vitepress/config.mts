@@ -51,8 +51,6 @@ export default defineConfig({
 
     outline: { label: '本页目录', level: [2, 3] },
 
-    docFooter: { prev: '上一页', next: '下一页' },
-
     lastUpdated: { text: '最近更新' },
   }
 })
