@@ -43,7 +43,7 @@ export default defineConfig({
 
     footer: {
       message: '小红书二奢商家服务助手',
-      copyright: '© 2026 小红书 · 持续更新中'
+      copyright: '© 2026 可爱的RED小助理 · 持续更新中'
     },
 
     search: { provider: 'local' },
