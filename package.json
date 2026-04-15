@@ -1,8 +1,7 @@
 {
   "name": "xhs-merchant-hub",
   "version": "1.0.0",
-  "type": "module",
-  "description": "小红书二奢商家服务助手",
+  "description": "\u5c0f\u7ea2\u4e66\u4e8c\u5962\u5546\u5bb6\u670d\u52a1\u52a9\u624b",
   "scripts": {
     "dev": "vitepress dev docs",
     "build": "node build.js",
