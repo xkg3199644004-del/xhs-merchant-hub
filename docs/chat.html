@@ -26,7 +26,7 @@ body { font-family: -apple-system, sans-serif; padding: 16px; background: #fff; 
 </div>
 
 <script>
-var PROXY_URL = 'https://xhs-merchant-hub-87wl.vercel.app/api/chat';
+var API_URL = '/api/chat';
 var messages = document.getElementById('messages');
 var input = document.getElementById('input');
 var send = document.getElementById('send');
@@ -51,7 +51,7 @@ send.disabled = true;
 addMsg('msg-user', text);
 history.push({ role: 'user', content: text });
 var loading = addMsg('msg-bot', '思考中...');
-fetch(PROXY_URL, {
+fetch(API_URL,
 method: 'POST',
 headers: { 'Content-Type': 'application/json' },
 body: JSON.stringify({ messages: history })
