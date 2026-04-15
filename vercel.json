@@ -3,8 +3,12 @@
   "outputDirectory": "docs/.vitepress/dist",
   "rewrites": [
     {
-      "source": "/api/(.*)",
+      "source": "/xhs-merchant-hub/api/(.*)",
       "destination": "/api/$1"
+    },
+    {
+      "source": "/xhs-merchant-hub/(.*)",
+      "destination": "/xhs-merchant-hub/$1"
     }
   ]
 }
