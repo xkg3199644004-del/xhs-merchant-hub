@@ -1,17 +1,15 @@
 ---
 layout: home
+title: 小红书二奢商家服务助手
 
 hero:
-  name: 小红书二奢
-  text: 商家服务助手
+  name: 小红书二奢商家服务
+  text: 二奢商家一站式服务平台
   tagline: 入驻 · 运营 · 案例 · 答疑，一站搞定
   actions:
     - theme: brand
       text: 开始入驻 →
       link: /入驻指南/index
-    - theme: alt
-      text: 问 AI 助手
-      link: /ai-assistant
 
 features:
   - icon: 🏛️
