@@ -6,6 +6,7 @@ export default defineConfig({
   lang: 'zh-CN',
   base: '/',
   appearance: false,
+  ssr: false,
 
   themeConfig: {
     siteTitle: '小红书二奢商家服务助手',
