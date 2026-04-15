@@ -1,14 +1,14 @@
 {
-"name": "xhs-merchant-hub",
-"version": "1.0.0",
-"type": "module",
-"description": "小红书二奢商家服务助手",
-"scripts": {
-"dev": "vitepress dev docs",
-"build": "vitepress build docs",
-"preview": "vitepress preview docs"
-},
-"devDependencies": {
-"vitepress": "^1.6.3"
-}
+  "name": "xhs-merchant-hub",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "小红书二奢商家服务助手",
+  "scripts": {
+    "dev": "npx vitepress dev docs",
+    "build": "npx vitepress build docs",
+    "preview": "npx vitepress preview docs"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.3"
+  }
 }
