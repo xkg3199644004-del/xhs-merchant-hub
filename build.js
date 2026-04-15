@@ -1,8 +1,6 @@
 import { build } from 'vitepress';
 
-build({
-  root: 'docs',
-}).catch(err => {
+build('docs').catch(err => {
   console.error(err);
   process.exit(1);
 });
