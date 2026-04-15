@@ -21,7 +21,6 @@
     </div>
   </div>
 
-  <!-- 历史记录面板 -->
   <div v-if="showHistory" class="history-panel">
     <div class="history-header">
       <h3>历史记录</h3>
@@ -108,8 +107,8 @@
 <script setup>
 import { ref, nextTick, computed, onMounted } from 'vue'
 
-// 通过后端代理调用 API，避免 API Key 泄露和 CORS 问题
-const API_URL = '/api/chat'
+const API_URL = 'https://api.deepseek.com/chat/completions'
+const API_KEY = "sk-02484a2dee45485bb120bc3fc47ded2b"
 
 const input = ref('')
 const loading = ref(false)
@@ -219,8 +218,15 @@ async function send() {
 
     const res = await fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: history, max_tokens: 3000 }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + API_KEY
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: history,
+        max_tokens: 3000
+      }),
       signal: controller.signal
     })
 
@@ -228,7 +234,7 @@ async function send() {
 
     if (!res.ok) {
       const errorBody = await res.json().catch(() => ({}))
-      throw new Error(errorBody.error || '请求失败 (' + res.status + ')')
+      throw new Error(errorBody.error?.message || '请求失败 (' + res.status + ')')
     }
 
     const data = await res.json()
