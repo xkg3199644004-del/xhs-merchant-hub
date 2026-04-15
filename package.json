@@ -4,9 +4,9 @@
   "type": "module",
   "description": "小红书二奢商家服务助手",
   "scripts": {
-    "dev": "npm exec -- vitepress dev docs",
-    "build": "npm exec -- vitepress build docs",
-    "preview": "npm exec -- vitepress preview docs"
+    "dev": "vitepress dev docs",
+    "build": "node build.js",
+    "preview": "vitepress preview docs"
   },
   "devDependencies": {
     "vitepress": "^1.6.3"
