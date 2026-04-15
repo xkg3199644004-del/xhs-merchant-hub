@@ -108,7 +108,7 @@
             <path d="M12 12C13.1046 12 14 11.1046 14 10C14 8.89543 13.1046 8 12 8C10.8954 8 10 8.89543 10 10C10 11.1046 10.8954 12 12 12Z" fill="white"/>
           </svg>
         </div>
-        <div class="message-text" v-if="m.role === 'user'" v-html="m.content"></div>
+        <div class="message-text" v-if="m.role === 'user'">{{ m.content }}</div>
         <div class="message-text" v-else v-html="renderMarkdown(m.content)"></div>
       </div>
     </div>
@@ -117,10 +117,11 @@
   <div class="chat-input-container">
     <input 
       v-model="input" 
-      @keydown.enter="send" 
+      @keydown.enter.prevent="send" 
       type="text" 
       placeholder="输入问题，按回车发送..." 
       class="chat-input"
+      :disabled="loading"
     />
     <button 
       @click="send" 
@@ -141,7 +142,10 @@
 <script setup>
 import { ref, nextTick, computed, onMounted } from 'vue'
 
-const API_KEY = 'sk-02484a2dee45485bb120bc3fc47ded2b'
+// 通过后端代理调用 API，避免 API Key 泄露和 CORS 问题
+// 如果部署在 Vercel，用相对路径即可；如果部署在 GitHub Pages，保留你的 Vercel 地址
+const API_URL = '/api/chat'
+
 const input = ref('')
 const loading = ref(false)
 const messages = ref([])
@@ -149,14 +153,13 @@ const msgsEl = ref(null)
 const showHistory = ref(false)
 const searchKeyword = ref('')
 const historyRecords = ref([])
-const history = [{ role: 'system', content: '你是小红书二奢商家服务助手，专门解答二手奢侈品商家在小红书平台的入驻流程、运营技巧、常见问题。回答简洁、专业、友好，使用中文。请使用Markdown格式输出，合理使用标题、列表等结构化格式。' }]
+const SYSTEM_PROMPT = '你是小红书二奢商家服务助手，专门解答二手奢侈品商家在小红书平台的入驻流程、运营技巧、常见问题。回答简洁、专业、友好，使用中文。请使用Markdown格式输出，合理使用标题、列表等结构化格式。'
+const history = [{ role: 'system', content: SYSTEM_PROMPT }]
 
-// 从本地存储加载历史记录
 onMounted(() => {
   loadHistoryFromStorage()
 })
 
-// 加载历史记录
 function loadHistoryFromStorage() {
   try {
     const stored = localStorage.getItem('aiChatHistory')
@@ -168,7 +171,6 @@ function loadHistoryFromStorage() {
   }
 }
 
-// 保存历史记录到本地存储
 function saveHistoryToStorage() {
   try {
     localStorage.setItem('aiChatHistory', JSON.stringify(historyRecords.value))
@@ -177,16 +179,12 @@ function saveHistoryToStorage() {
   }
 }
 
-// 提取关键词
 function extractKeywords(text) {
-  // 简单的关键词提取逻辑
   const stopWords = ['的', '了', '是', '在', '我', '有', '和', '就', '不', '人', '都', '一', '一个', '上', '也', '很', '到', '说', '要', '去', '你', '会', '着', '没有', '看', '好', '自己', '这']
   const words = text.split(/\s+|，|。|！|？/).filter(word => word.length > 1 && !stopWords.includes(word))
-  // 取前5个关键词
   return [...new Set(words)].slice(0, 5)
 }
 
-// 保存历史记录
 function saveHistoryRecord(question, reply) {
   const record = {
     id: Date.now().toString(),
@@ -195,15 +193,13 @@ function saveHistoryRecord(question, reply) {
     timestamp: new Date().toISOString(),
     keywords: extractKeywords(question)
   }
-  historyRecords.value.unshift(record) // 添加到开头
-  // 限制历史记录数量为50条
+  historyRecords.value.unshift(record)
   if (historyRecords.value.length > 50) {
     historyRecords.value = historyRecords.value.slice(0, 50)
   }
   saveHistoryToStorage()
 }
 
-// 过滤历史记录
 const filteredHistory = computed(() => {
   if (!searchKeyword.value) {
     return historyRecords.value
@@ -215,7 +211,6 @@ const filteredHistory = computed(() => {
   )
 })
 
-// 格式化时间
 function formatTime(timestamp) {
   const date = new Date(timestamp)
   return date.toLocaleString('zh-CN', {
@@ -226,22 +221,18 @@ function formatTime(timestamp) {
   })
 }
 
-// 加载历史记录到聊天界面
 function loadHistoryRecord(record) {
-  // 清空当前聊天
   messages.value = []
-  history.value = [{ role: 'system', content: '你是小红书二奢商家服务助手，专门解答二手奢侈品商家在小红书平台的入驻流程、运营技巧、常见问题。回答简洁、专业、友好，使用中文。请使用Markdown格式输出，合理使用标题、列表等结构化格式。' }]
+  history.length = 1
+  history[0] = { role: 'system', content: SYSTEM_PROMPT }
   
-  // 添加历史问题和回答
   messages.value.push({ role: 'user', content: record.question })
   history.push({ role: 'user', content: record.question })
   messages.value.push({ role: 'assistant', content: record.reply })
   history.push({ role: 'assistant', content: record.reply })
   
-  // 关闭历史面板
   showHistory.value = false
   
-  // 滚动到底部
   nextTick(() => {
     if (msgsEl.value) {
       msgsEl.value.scrollTop = msgsEl.value.scrollHeight
@@ -249,13 +240,11 @@ function loadHistoryRecord(record) {
   })
 }
 
-// 删除历史记录
 function deleteHistoryRecord(id) {
   historyRecords.value = historyRecords.value.filter(record => record.id !== id)
   saveHistoryToStorage()
 }
 
-// 清空历史记录
 function clearHistory() {
   if (confirm('确定要清空所有历史记录吗？')) {
     historyRecords.value = []
@@ -263,480 +252,157 @@ function clearHistory() {
   }
 }
 
-// 切换历史面板
 function toggleHistory() {
   showHistory.value = !showHistory.value
 }
 
 function renderMarkdown(text) {
-  // 简单的Markdown渲染
+  if (!text) return ''
   return text
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/^### (.*$)/gim, '<h3 style="margin:8px 0 4px 0;">$1</h3>')
-    .replace(/^## (.*$)/gim, '<h2 style="margin:12px 0 6px 0;">$1</h2>')
-    .replace(/^# (.*$)/gim, '<h1 style="margin:16px 0 8px 0;">$1</h1>')
-    .replace(/^\* (.*$)/gim, '<li style="margin-left:20px;">$1</li>')
-    .replace(/(?:^\* .*$\n)+/gim, '<ul style="margin:8px 0;">$&</ul>')
-    .replace(/^\d+\. (.*$)/gim, '<li style="margin-left:20px;">$1</li>')
-    .replace(/(?:^\d+\. .*$\n)+/gim, '<ol style="margin:8px 0;">$&</ol>')
+    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre style="background:#f4f4f4;padding:12px;border-radius:8px;overflow-x:auto;"><code>$2</code></pre>')
+    .replace(/`([^`]+)`/g, '<code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;font-size:0.9em;">$1</code>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:#ff2442;">$1</a>')
+    .replace(/^### (.+)$/gm, '<h3 style="margin:12px 0 4px 0;font-size:1.1em;">$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2 style="margin:16px 0 6px 0;font-size:1.25em;">$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1 style="margin:20px 0 8px 0;font-size:1.5em;">$1</h1>')
+    .replace(/^&gt; (.+)$/gm, '<blockquote style="border-left:3px solid #ff2442;padding-left:12px;color:#666;margin:8px 0;">$1</blockquote>')
+    .replace(/^[\*\-] (.+)$/gm, '<li style="margin-left:20px;list-style:disc;">$1</li>')
+    .replace(/^\d+\. (.+)$/gm, '<li style="margin-left:20px;list-style:decimal;">$1</li>')
+    .replace(/^---$/gm, '<hr style="border:none;border-top:1px solid #e5e7eb;margin:12px 0;">')
     .replace(/\n/g, '<br>')
 }
 
 async function send() {
   const text = input.value.trim()
   if (!text || loading.value) return
+
   input.value = ''
   loading.value = true
+
   messages.value.push({ role: 'user', content: text })
   history.push({ role: 'user', content: text })
+  const pendingIndex = messages.value.length
   messages.value.push({ role: 'assistant', content: '思考中...' })
+
   await nextTick()
-  msgsEl.value.scrollTop = msgsEl.value.scrollHeight
-  try {
-    const res = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`
-      },
-      body: JSON.stringify({ model: 'deepseek-chat', messages: history, max_tokens: 1000 })
-    })
-    const data = await res.json()
-    const reply = data.choices?.[0]?.message?.content || '抱歉，出了点问题，请稍后再试。'
-    messages.value[messages.value.length - 1].content = reply
-    history.push({ role: 'assistant', content: reply })
-    
-    // 保存历史记录
-    saveHistoryRecord(text, reply)
-  } catch {
-    messages.value[messages.value.length - 1].content = '网络错误，请稍后重试。'
+  if (msgsEl.value) {
+    msgsEl.value.scrollTop = msgsEl.value.scrollHeight
   }
-  loading.value = false
-  await nextTick()
-  msgsEl.value.scrollTop = msgsEl.value.scrollHeight
+
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000)
+
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: history, max_tokens: 3000 }),
+      signal: controller.signal
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!res.ok) {
+      const errorBody = await res.json().catch(() => ({}))
+      throw new Error(errorBody.error || `请求失败 (${res.status})`)
+    }
+
+    const data = await res.json()
+    const reply = data.choices?.[0]?.message?.content
+    if (!reply) {
+      throw new Error('AI 未返回有效回复')
+    }
+
+    messages.value[pendingIndex - 1].content = reply
+    history.push({ role: 'assistant', content: reply })
+    saveHistoryRecord(text, reply)
+  } catch (err) {
+    console.error('AI 请求失败:', err)
+    const errorMsg = err.name === 'AbortError'
+      ? '请求超时，请稍后重试。'
+      : err.message || '网络错误，请稍后重试。'
+    messages.value[pendingIndex - 1].content = errorMsg
+  } finally {
+    loading.value = false
+    await nextTick()
+    if (msgsEl.value) {
+      msgsEl.value.scrollTop = msgsEl.value.scrollHeight
+    }
+  }
 }
 </script>
 
 <style scoped>
+/* 原有样式保持不变 */
 .ai-chat-container {
   max-width: 720px;
   margin: 0 auto;
   padding: 40px 20px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
-
-.chat-header {
-  margin-bottom: 30px;
-  text-align: center;
-}
-
-.header-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  position: relative;
-}
-
-.header-actions {
-  position: absolute;
-  right: 0;
-}
-
-.history-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 8px;
-  transition: background-color 0.3s ease;
-}
-
-.history-button:hover {
-  background-color: #f0f0f0;
-}
-
-.logo svg {
-  width: 32px;
-  height: 32px;
-}
-
-.title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #333;
-  margin: 0;
-}
-
-/* 历史记录面板 */
-.history-panel {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
-  overflow: hidden;
-}
-
-.history-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.history-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.history-actions {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.search-input {
-  padding: 6px 12px;
-  border: 1px solid #e9ecef;
-  border-radius: 16px;
-  font-size: 14px;
-  width: 200px;
-  outline: none;
-  transition: all 0.3s ease;
-}
-
-.search-input:focus {
-  border-color: #ff2442;
-  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.1);
-}
-
-.clear-button {
-  padding: 6px 12px;
-  background: none;
-  border: 1px solid #e9ecef;
-  border-radius: 16px;
-  font-size: 14px;
-  color: #666;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.clear-button:hover {
-  border-color: #ff2442;
-  color: #ff2442;
-}
-
-.history-list {
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.history-item {
-  padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f0;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.history-item:hover {
-  background-color: #f8f9fa;
-}
-
-.history-item-content {
-  flex: 1;
-}
-
-.history-question {
-  font-size: 14px;
-  color: #333;
-  margin-bottom: 8px;
-  line-height: 1.4;
-}
-
-.history-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.history-time {
-  font-size: 12px;
-  color: #999;
-}
-
-.history-keywords {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.keyword-tag {
-  font-size: 12px;
-  padding: 2px 8px;
-  background: #f0f0f0;
-  border-radius: 10px;
-  color: #666;
-}
-
-.delete-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 8px;
-  transition: background-color 0.3s ease;
-  opacity: 0.5;
-}
-
-.delete-button:hover {
-  background-color: #f0f0f0;
-  opacity: 1;
-}
-
-.empty-history {
-  padding: 40px 20px;
-  text-align: center;
-  color: #999;
-  font-size: 14px;
-}
-
-/* 聊天消息区域 */
-.chat-messages {
-  min-height: 400px;
-  max-height: 500px;
-  overflow-y: auto;
-  border-radius: 16px;
-  padding: 24px;
-  margin-bottom: 20px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.message {
-  animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.message-content {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  max-width: 80%;
-}
-
-.user-message .message-content {
-  align-self: flex-end;
-  flex-direction: row-reverse;
-  margin-left: auto;
-}
-
-.bot-message .message-content {
-  align-self: flex-start;
-  margin-right: auto;
-}
-
-.user-avatar, .bot-avatar {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.message-text {
-  padding: 14px 18px;
-  border-radius: 18px;
-  line-height: 1.5;
-  word-break: break-word;
-}
-
-.user-message .message-text {
-  background: #ff2442;
-  color: white;
-  border-bottom-right-radius: 4px;
-  box-shadow: 0 2px 8px rgba(255, 36, 66, 0.2);
-}
-
-.bot-message .message-text {
-  background: white;
-  color: #333;
-  border-bottom-left-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.initial-message .message-text {
-  background: white;
-  color: #333;
-  border-bottom-left-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-/* 输入区域 */
-.chat-input-container {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-  position: relative;
-}
-
-.chat-input {
-  flex: 1;
-  padding: 16px 20px;
-  border: 2px solid #e9ecef;
-  border-radius: 24px;
-  font-size: 16px;
-  transition: all 0.3s ease;
-  outline: none;
-  background: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.chat-input:focus {
-  border-color: #ff2442;
-  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.1);
-}
-
-.send-button {
-  padding: 0 28px;
-  background: linear-gradient(135deg, #ff2442 0%, #ff4d6a 100%);
-  color: white;
-  border: none;
-  border-radius: 24px;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(255, 36, 66, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.send-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(255, 36, 66, 0.4);
-}
-
-.send-button:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.send-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-.loading-spinner {
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.disclaimer {
-  font-size: 12px;
-  color: #999;
-  text-align: center;
-  margin: 0;
-  padding-top: 8px;
-}
-
-/* 滚动条样式 */
-.chat-messages::-webkit-scrollbar,
-.history-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.chat-messages::-webkit-scrollbar-track,
-.history-list::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-.chat-messages::-webkit-scrollbar-thumb,
-.history-list::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 3px;
-}
-
-.chat-messages::-webkit-scrollbar-thumb:hover,
-.history-list::-webkit-scrollbar-thumb:hover {
-  background: #999;
-}
-
-/* 响应式设计 */
+.chat-header { margin-bottom: 30px; text-align: center; }
+.header-content { display: flex; align-items: center; justify-content: center; gap: 12px; position: relative; }
+.header-actions { position: absolute; right: 0; }
+.history-button { background: none; border: none; cursor: pointer; padding: 8px; border-radius: 8px; transition: background-color 0.3s ease; }
+.history-button:hover { background-color: #f0f0f0; }
+.logo svg { width: 32px; height: 32px; }
+.title { font-size: 24px; font-weight: 600; color: #333; margin: 0; }
+.history-panel { background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); margin-bottom: 20px; overflow: hidden; }
+.history-header { padding: 16px 20px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+.history-header h3 { margin: 0; font-size: 16px; font-weight: 600; color: #333; }
+.history-actions { display: flex; gap: 10px; align-items: center; }
+.search-input { padding: 6px 12px; border: 1px solid #e9ecef; border-radius: 16px; font-size: 14px; width: 200px; outline: none; transition: all 0.3s ease; }
+.search-input:focus { border-color: #ff2442; box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.1); }
+.clear-button { padding: 6px 12px; background: none; border: 1px solid #e9ecef; border-radius: 16px; font-size: 14px; color: #666; cursor: pointer; transition: all 0.3s ease; }
+.clear-button:hover { border-color: #ff2442; color: #ff2442; }
+.history-list { max-height: 300px; overflow-y: auto; }
+.history-item { padding: 16px 20px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: flex-start; cursor: pointer; transition: background-color 0.3s ease; }
+.history-item:hover { background-color: #f8f9fa; }
+.history-item-content { flex: 1; }
+.history-question { font-size: 14px; color: #333; margin-bottom: 8px; line-height: 1.4; }
+.history-meta { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+.history-time { font-size: 12px; color: #999; }
+.history-keywords { display: flex; gap: 6px; flex-wrap: wrap; }
+.keyword-tag { font-size: 12px; padding: 2px 8px; background: #f0f0f0; border-radius: 10px; color: #666; }
+.delete-button { background: none; border: none; cursor: pointer; padding: 8px; border-radius: 8px; transition: background-color 0.3s ease; opacity: 0.5; }
+.delete-button:hover { background-color: #f0f0f0; opacity: 1; }
+.empty-history { padding: 40px 20px; text-align: center; color: #999; font-size: 14px; }
+.chat-messages { min-height: 400px; max-height: 500px; overflow-y: auto; border-radius: 16px; padding: 24px; margin-bottom: 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); display: flex; flex-direction: column; gap: 16px; }
+.message { animation: fadeIn 0.3s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.message-content { display: flex; align-items: flex-start; gap: 12px; max-width: 80%; }
+.user-message .message-content { align-self: flex-end; flex-direction: row-reverse; margin-left: auto; }
+.bot-message .message-content { align-self: flex-start; margin-right: auto; }
+.user-avatar, .bot-avatar { flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
+.message-text { padding: 14px 18px; border-radius: 18px; line-height: 1.5; word-break: break-word; }
+.user-message .message-text { background: #ff2442; color: white; border-bottom-right-radius: 4px; box-shadow: 0 2px 8px rgba(255, 36, 66, 0.2); }
+.bot-message .message-text { background: white; color: #333; border-bottom-left-radius: 4px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
+.initial-message .message-text { background: white; color: #333; border-bottom-left-radius: 4px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
+.chat-input-container { display: flex; gap: 12px; margin-bottom: 16px; position: relative; }
+.chat-input { flex: 1; padding: 16px 20px; border: 2px solid #e9ecef; border-radius: 24px; font-size: 16px; transition: all 0.3s ease; outline: none; background: white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); }
+.chat-input:focus { border-color: #ff2442; box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.1); }
+.chat-input:disabled { background: #f5f5f5; cursor: not-allowed; }
+.send-button { padding: 0 28px; background: linear-gradient(135deg, #ff2442 0%, #ff4d6a 100%); color: white; border: none; border-radius: 24px; font-size: 16px; font-weight: 500; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(255, 36, 66, 0.3); display: flex; align-items: center; justify-content: center; }
+.send-button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(255, 36, 66, 0.4); }
+.send-button:active:not(:disabled) { transform: translateY(0); }
+.send-button:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+.loading-spinner { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
+.spinner { width: 20px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.3); border-top: 2px solid white; border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.disclaimer { font-size: 12px; color: #999; text-align: center; margin: 0; padding-top: 8px; }
+.chat-messages::-webkit-scrollbar, .history-list::-webkit-scrollbar { width: 6px; }
+.chat-messages::-webkit-scrollbar-track, .history-list::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
+.chat-messages::-webkit-scrollbar-thumb, .history-list::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+.chat-messages::-webkit-scrollbar-thumb:hover, .history-list::-webkit-scrollbar-thumb:hover { background: #999; }
 @media (max-width: 768px) {
-  .ai-chat-container {
-    padding: 20px 16px;
-  }
-  
-  .chat-messages {
-    min-height: 350px;
-    max-height: 400px;
-    padding: 16px;
-  }
-  
-  .message-content {
-    max-width: 85%;
-  }
-  
-  .title {
-    font-size: 20px;
-  }
-  
-  .history-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  
-  .history-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-  
-  .search-input {
-    flex: 1;
-  }
+  .ai-chat-container { padding: 20px 16px; }
+  .chat-messages { min-height: 350px; max-height: 400px; padding: 16px; }
+  .message-content { max-width: 85%; }
+  .title { font-size: 20px; }
+  .history-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .history-actions { width: 100%; justify-content: space-between; }
+  .search-input { flex: 1; }
 }
 </style>
