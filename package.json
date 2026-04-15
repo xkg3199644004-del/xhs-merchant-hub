@@ -4,9 +4,9 @@
   "type": "module",
   "description": "小红书二奢商家服务助手",
   "scripts": {
-    "dev": "node node_modules/vitepress/bin/vitepress.js dev docs",
-    "build": "node node_modules/vitepress/bin/vitepress.js build docs",
-    "preview": "node node_modules/vitepress/bin/vitepress.js preview docs"
+    "dev": "npx vitepress dev docs",
+    "build": "npx vitepress build docs",
+    "preview": "npx vitepress preview docs"
   },
   "devDependencies": {
     "vitepress": "^1.6.3"
