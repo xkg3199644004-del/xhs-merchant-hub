@@ -16,7 +16,6 @@ export default defineConfig({
       { text: '优秀案例', link: '/优秀案例/index' },
       { text: '运营玩法', link: '/运营玩法/index' },
       { text: '常见问题', link: '/常见问题/index' },
-      { text: 'AI 助手', link: '/ai-assistant' },
     ],
 
     sidebar: {
