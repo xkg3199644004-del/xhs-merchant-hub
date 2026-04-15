@@ -26,41 +26,22 @@
     <div class="history-header">
       <h3>历史记录</h3>
       <div class="history-actions">
-        <input 
-          v-model="searchKeyword" 
-          type="text" 
-          placeholder="搜索关键词..." 
-          class="search-input"
-        />
+        <input v-model="searchKeyword" type="text" placeholder="搜索关键词..." class="search-input"/>
         <button @click="clearHistory" class="clear-button">清空</button>
       </div>
     </div>
     <div class="history-list">
-      <div 
-        v-for="record in filteredHistory" 
-        :key="record.id" 
-        class="history-item"
-        @click="loadHistoryRecord(record)"
-      >
+      <div v-for="record in filteredHistory" :key="record.id" class="history-item" @click="loadHistoryRecord(record)">
         <div class="history-item-content">
           <div class="history-question">{{ record.question }}</div>
           <div class="history-meta">
             <span class="history-time">{{ formatTime(record.timestamp) }}</span>
             <div class="history-keywords">
-              <span 
-                v-for="keyword in record.keywords" 
-                :key="keyword" 
-                class="keyword-tag"
-              >
-                {{ keyword }}
-              </span>
+              <span v-for="keyword in record.keywords" :key="keyword" class="keyword-tag">{{ keyword }}</span>
             </div>
           </div>
         </div>
-        <button 
-          @click.stop="deleteHistoryRecord(record.id)" 
-          class="delete-button"
-        >
+        <button @click.stop="deleteHistoryRecord(record.id)" class="delete-button">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M19 7L5 7" stroke="#999" stroke-width="2" stroke-linecap="round"/>
             <path d="M12 11V17" stroke="#999" stroke-width="2" stroke-linecap="round"/>
@@ -75,7 +56,7 @@
       </div>
     </div>
   </div>
-  
+
   <div ref="msgsEl" class="chat-messages">
     <div class="message bot-message initial-message">
       <div class="message-content">
@@ -86,12 +67,10 @@
             <path d="M12 12C13.1046 12 14 11.1046 14 10C14 8.89543 13.1046 8 12 8C10.8954 8 10 8.89543 10 10C10 11.1046 10.8954 12 12 12Z" fill="white"/>
           </svg>
         </div>
-        <div class="message-text">
-          👋 你好！我是小红书二奢商家服务 AI 助手，有什么想问的？
-        </div>
+        <div class="message-text">👋 你好！我是小红书二奢商家服务 AI 助手，有什么想问的？</div>
       </div>
     </div>
-    
+
     <div v-for="(m, i) in messages" :key="i" :class="['message', m.role === 'user' ? 'user-message' : 'bot-message']">
       <div class="message-content">
         <div v-if="m.role === 'user'" class="user-avatar">
@@ -113,28 +92,15 @@
       </div>
     </div>
   </div>
-  
+
   <div class="chat-input-container">
-    <input 
-      v-model="input" 
-      @keydown.enter.prevent="send" 
-      type="text" 
-      placeholder="输入问题，按回车发送..." 
-      class="chat-input"
-      :disabled="loading"
-    />
-    <button 
-      @click="send" 
-      :disabled="loading" 
-      class="send-button"
-    >
+    <input v-model="input" @keydown.enter.prevent="send" type="text" placeholder="输入问题，按回车发送..." class="chat-input" :disabled="loading"/>
+    <button @click="send" :disabled="loading" class="send-button">
       <span v-if="!loading">发送</span>
-      <div v-else class="loading-spinner">
-        <div class="spinner"></div>
-      </div>
+      <div v-else class="loading-spinner"><div class="spinner"></div></div>
     </button>
   </div>
-  
+
   <p class="disclaimer">AI 回答仅供参考，具体政策以小红书官方为准</p>
 </div>
 </template>
@@ -143,7 +109,6 @@
 import { ref, nextTick, computed, onMounted } from 'vue'
 
 // 通过后端代理调用 API，避免 API Key 泄露和 CORS 问题
-// 如果部署在 Vercel，用相对路径即可；如果部署在 GitHub Pages，保留你的 Vercel 地址
 const API_URL = '/api/chat'
 
 const input = ref('')
@@ -156,105 +121,64 @@ const historyRecords = ref([])
 const SYSTEM_PROMPT = '你是小红书二奢商家服务助手，专门解答二手奢侈品商家在小红书平台的入驻流程、运营技巧、常见问题。回答简洁、专业、友好，使用中文。请使用Markdown格式输出，合理使用标题、列表等结构化格式。'
 const history = [{ role: 'system', content: SYSTEM_PROMPT }]
 
-onMounted(() => {
-  loadHistoryFromStorage()
-})
+onMounted(() => { loadHistoryFromStorage() })
 
 function loadHistoryFromStorage() {
   try {
     const stored = localStorage.getItem('aiChatHistory')
-    if (stored) {
-      historyRecords.value = JSON.parse(stored)
-    }
-  } catch (error) {
-    console.error('加载历史记录失败:', error)
-  }
+    if (stored) historyRecords.value = JSON.parse(stored)
+  } catch (e) { console.error('加载历史记录失败:', e) }
 }
 
 function saveHistoryToStorage() {
-  try {
-    localStorage.setItem('aiChatHistory', JSON.stringify(historyRecords.value))
-  } catch (error) {
-    console.error('保存历史记录失败:', error)
-  }
+  try { localStorage.setItem('aiChatHistory', JSON.stringify(historyRecords.value)) }
+  catch (e) { console.error('保存历史记录失败:', e) }
 }
 
 function extractKeywords(text) {
-  const stopWords = ['的', '了', '是', '在', '我', '有', '和', '就', '不', '人', '都', '一', '一个', '上', '也', '很', '到', '说', '要', '去', '你', '会', '着', '没有', '看', '好', '自己', '这']
-  const words = text.split(/\s+|，|。|！|？/).filter(word => word.length > 1 && !stopWords.includes(word))
+  const stopWords = ['的','了','是','在','我','有','和','就','不','人','都','一','一个','上','也','很','到','说','要','去','你','会','着','没有','看','好','自己','这']
+  const words = text.split(/\s+|，|。|！|？/).filter(w => w.length > 1 && !stopWords.includes(w))
   return [...new Set(words)].slice(0, 5)
 }
 
 function saveHistoryRecord(question, reply) {
-  const record = {
-    id: Date.now().toString(),
-    question,
-    reply,
-    timestamp: new Date().toISOString(),
-    keywords: extractKeywords(question)
-  }
+  const record = { id: Date.now().toString(), question, reply, timestamp: new Date().toISOString(), keywords: extractKeywords(question) }
   historyRecords.value.unshift(record)
-  if (historyRecords.value.length > 50) {
-    historyRecords.value = historyRecords.value.slice(0, 50)
-  }
+  if (historyRecords.value.length > 50) historyRecords.value = historyRecords.value.slice(0, 50)
   saveHistoryToStorage()
 }
 
 const filteredHistory = computed(() => {
-  if (!searchKeyword.value) {
-    return historyRecords.value
-  }
-  const keyword = searchKeyword.value.toLowerCase()
-  return historyRecords.value.filter(record => 
-    record.question.toLowerCase().includes(keyword) ||
-    record.keywords.some(k => k.toLowerCase().includes(keyword))
-  )
+  if (!searchKeyword.value) return historyRecords.value
+  const kw = searchKeyword.value.toLowerCase()
+  return historyRecords.value.filter(r => r.question.toLowerCase().includes(kw) || r.keywords.some(k => k.toLowerCase().includes(kw)))
 })
 
-function formatTime(timestamp) {
-  const date = new Date(timestamp)
-  return date.toLocaleString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+function formatTime(ts) {
+  return new Date(ts).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
 function loadHistoryRecord(record) {
   messages.value = []
   history.length = 1
-  history[0] = { role: 'system', content: SYSTEM_PROMPT }
-  
   messages.value.push({ role: 'user', content: record.question })
   history.push({ role: 'user', content: record.question })
   messages.value.push({ role: 'assistant', content: record.reply })
   history.push({ role: 'assistant', content: record.reply })
-  
   showHistory.value = false
-  
-  nextTick(() => {
-    if (msgsEl.value) {
-      msgsEl.value.scrollTop = msgsEl.value.scrollHeight
-    }
-  })
+  nextTick(() => { if (msgsEl.value) msgsEl.value.scrollTop = msgsEl.value.scrollHeight })
 }
 
 function deleteHistoryRecord(id) {
-  historyRecords.value = historyRecords.value.filter(record => record.id !== id)
+  historyRecords.value = historyRecords.value.filter(r => r.id !== id)
   saveHistoryToStorage()
 }
 
 function clearHistory() {
-  if (confirm('确定要清空所有历史记录吗？')) {
-    historyRecords.value = []
-    saveHistoryToStorage()
-  }
+  if (confirm('确定要清空所有历史记录吗？')) { historyRecords.value = []; saveHistoryToStorage() }
 }
 
-function toggleHistory() {
-  showHistory.value = !showHistory.value
-}
+function toggleHistory() { showHistory.value = !showHistory.value }
 
 function renderMarkdown(text) {
   if (!text) return ''
@@ -287,9 +211,7 @@ async function send() {
   messages.value.push({ role: 'assistant', content: '思考中...' })
 
   await nextTick()
-  if (msgsEl.value) {
-    msgsEl.value.scrollTop = msgsEl.value.scrollHeight
-  }
+  if (msgsEl.value) msgsEl.value.scrollTop = msgsEl.value.scrollHeight
 
   try {
     const controller = new AbortController()
@@ -306,42 +228,30 @@ async function send() {
 
     if (!res.ok) {
       const errorBody = await res.json().catch(() => ({}))
-      throw new Error(errorBody.error || `请求失败 (${res.status})`)
+      throw new Error(errorBody.error || '请求失败 (' + res.status + ')')
     }
 
     const data = await res.json()
     const reply = data.choices?.[0]?.message?.content
-    if (!reply) {
-      throw new Error('AI 未返回有效回复')
-    }
+    if (!reply) throw new Error('AI 未返回有效回复')
 
     messages.value[pendingIndex - 1].content = reply
     history.push({ role: 'assistant', content: reply })
     saveHistoryRecord(text, reply)
   } catch (err) {
     console.error('AI 请求失败:', err)
-    const errorMsg = err.name === 'AbortError'
-      ? '请求超时，请稍后重试。'
-      : err.message || '网络错误，请稍后重试。'
+    const errorMsg = err.name === 'AbortError' ? '请求超时，请稍后重试。' : (err.message || '网络错误，请稍后重试。')
     messages.value[pendingIndex - 1].content = errorMsg
   } finally {
     loading.value = false
     await nextTick()
-    if (msgsEl.value) {
-      msgsEl.value.scrollTop = msgsEl.value.scrollHeight
-    }
+    if (msgsEl.value) msgsEl.value.scrollTop = msgsEl.value.scrollHeight
   }
 }
 </script>
 
 <style scoped>
-/* 原有样式保持不变 */
-.ai-chat-container {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 40px 20px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-}
+.ai-chat-container { max-width: 720px; margin: 0 auto; padding: 40px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
 .chat-header { margin-bottom: 30px; text-align: center; }
 .header-content { display: flex; align-items: center; justify-content: center; gap: 12px; position: relative; }
 .header-actions { position: absolute; right: 0; }
