@@ -107,7 +107,8 @@
 <script setup>
 import { ref, nextTick, computed, onMounted } from 'vue'
 
-const API_URL = '/api/chat'
+const API_URL = 'https://api.deepseek.com/chat/completions'
+const API_KEY = 'sk-02484a2dee45485bb120bc3fc47ded2b'
 
 const input = ref('')
 const loading = ref(false)
@@ -217,7 +218,7 @@ async function send() {
 
     const res = await fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY },
       body: JSON.stringify({
         model: 'deepseek-chat',
         messages: history,
