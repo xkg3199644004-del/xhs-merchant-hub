@@ -107,8 +107,7 @@
 <script setup>
 import { ref, nextTick, computed, onMounted } from 'vue'
 
-const API_URL = 'https://api.deepseek.com/chat/completions'
-const API_KEY = 'sk-02484a2dee45485bb120bc3fc47ded2b'
+const API_URL = '/api/chat'
 
 const input = ref('')
 const loading = ref(false)
