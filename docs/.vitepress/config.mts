@@ -4,7 +4,7 @@ export default defineConfig({
   title: '小红书二奢商家服务助手',
   description: '二奢商家入驻、运营、案例一站式查询平台',
   lang: 'zh-CN',
-  base: process.env.VERCEL ? '/' : '/xhs-merchant-hub/',
+  base: '/xhs-merchant-hub/',
   appearance: false,
 
   themeConfig: {
