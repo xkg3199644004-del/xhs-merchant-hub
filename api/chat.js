@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+const fetch = globalThis.fetch || require('node-fetch');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -14,7 +14,7 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { messages } = req.body;
+  const { messages } = req.body || {};
 
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: 'Invalid request body' });
@@ -36,9 +36,9 @@ module.exports = async function handler(req, res) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      return res.status(response.status).json({ 
-        error: `DeepSeek API error (${response.status})`, 
-        details: errorText 
+      return res.status(response.status).json({
+        error: `DeepSeek API error (${response.status})`,
+        details: errorText
       });
     }
 
